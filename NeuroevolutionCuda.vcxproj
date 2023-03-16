@@ -34,6 +34,10 @@
     <ClInclude Include="src\CPU\SelectionAlgo\TruncationSelection.h" />
     <ClInclude Include="src\CPU\SelectionAlgo\GeneticSelector.h" />
     <ClInclude Include="src\CPU\SelectionAlgo\WheelSelection.h" />
+    <ClInclude Include="src\GPU\CrossoverAlgo\CudaGeneticCrossover.cuh" />
+    <ClInclude Include="src\GPU\CrossoverAlgo\CudaMPCCrossover.cuh" />
+    <ClInclude Include="src\GPU\CrossoverAlgo\CudaSPCCrossover.cuh" />
+    <ClInclude Include="src\GPU\CrossoverAlgo\CudaUniformCrossover.cuh" />
     <ClInclude Include="src\GPU\CudaLayer.cuh" />
     <ClInclude Include="src\GPU\CudaNeuralNetwork.cuh" />
     <ClInclude Include="src\GPU\MutationAlgo\CudaAddMutation.cuh" />
@@ -57,6 +61,9 @@
     <ClInclude Include="src\Utility\Timer.h" />
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="src\GPU\CrossoverAlgo\CudaMPCCrossover.cu" />
+    <CudaCompile Include="src\GPU\CrossoverAlgo\CudaSPCCrossover.cu" />
+    <CudaCompile Include="src\GPU\CrossoverAlgo\CudaUniformCrossover.cu" />
     <CudaCompile Include="src\GPU\CudaLayer.cu" />
     <CudaCompile Include="src\GPU\CudaNeuralNetwork.cu" />
     <CudaCompile Include="src\GPU\MutationAlgo\CudaAddMutation.cu" />

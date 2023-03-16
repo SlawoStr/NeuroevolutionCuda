@@ -30,7 +30,7 @@ public:
 		m_geneMutationProbability = geneMutationProbability;
 	}
 
-	virtual void runMutation(thrust::device_vector<float>& newWeights, int weightPerModel, int parentModel, curandState* state, unsigned blockNumber, unsigned threadNumber) = 0;
+	virtual void runMutation(thrust::device_vector<float>& newWeights, int weightPerModel, int parentNumber, curandState* state, unsigned blockNumber, unsigned threadNumber) = 0;
 
 
 protected:

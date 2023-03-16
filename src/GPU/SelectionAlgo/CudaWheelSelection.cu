@@ -49,4 +49,9 @@ void CudaWheelSelection::runSelection(const std::vector<std::pair<int, double>>&
 		m_cumulativeDistribution[i] = m_cumulativeDistribution[i - 1] + modelFitness[i].second / fitnessSum;
 	}
 	thrust::copy(m_cumulativeDistribution.begin(), m_cumulativeDistribution.end(), md_cumulativeDistribution.begin());
+
+	int parentPair = static_cast<int>(md_parent.size() / 2);
+	int optimalBlockNumber = std::min(blockNumber, (parentPair + threadNumber - 1) / threadNumber);
+	wheelSelectionKernel << <optimalBlockNumber, threadNumber >> >
+		(thrust::raw_pointer_cast(md_cumulativeDistribution.data()), thrust::raw_pointer_cast(md_parent.data()), static_cast<int>(modelFitness.size()), parentPair, state);
 }

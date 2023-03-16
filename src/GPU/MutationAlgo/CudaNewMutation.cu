@@ -30,8 +30,8 @@ __global__ void newMutationKernel(float* weight, float mutationProbability, floa
 }
 
 
-void CudaNewMutation::runMutation(thrust::device_vector<float>& newWeights, int weightPerModel, int parentModel, curandState* state, unsigned blockNumber, unsigned threadNumber)
+void CudaNewMutation::runMutation(thrust::device_vector<float>& newWeights, int weightPerModel, int parentNumber, curandState* state, unsigned blockNumber, unsigned threadNumber)
 {
-
-
+	newMutationKernel << <std::min(blockNumber, static_cast<unsigned>(parentNumber)), threadNumber >> >
+		(thrust::raw_pointer_cast(newWeights.data()), m_mutationProbability, m_geneMutationProbability, weightPerModel, parentNumber, state);
 }

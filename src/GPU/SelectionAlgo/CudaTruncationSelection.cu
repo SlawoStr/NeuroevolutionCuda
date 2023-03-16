@@ -5,7 +5,7 @@
 #include "src/Utility/GeneticAlgorithmBadInput.h"
 
 
-__global__ void truncationSelectionKernel(double* fitness, int* parents, int* parentIndex, int parentNumber, int populationSize, int bestParentNumber, curandState* state)
+__global__ void truncationSelectionKernel(int* parents, int* parentIndex, int parentNumber, int bestParentNumber, curandState* state)
 {
 	int tid = threadIdx.x + blockDim.x * blockIdx.x;
 	curandState threadState = state[tid];
@@ -40,4 +40,9 @@ void CudaTruncationSelection::runSelection(const std::vector<std::pair<int, doub
 	std::partial_sort_copy(modelFitness.begin(), modelFitness.end(), m_parentPool.begin(), m_parentPool.end(), [](const auto& lhs, const auto& rhs) {return lhs.second > rhs.second; });
 	std::transform(m_parentPool.begin(), m_parentPool.end(), m_parentIndex.begin(), [](auto& val) {return val.first; });
 	thrust::copy(m_parentIndex.begin(), m_parentIndex.end(), md_parentIndex.begin());
+
+	int parentPair = static_cast<int>(md_parent.size() / 2);
+	int optimalBlockNumber = std::min(blockNumber, (parentPair + threadNumber - 1) / threadNumber);
+	truncationSelectionKernel << <optimalBlockNumber, threadNumber >> >
+		(thrust::raw_pointer_cast(md_parent.data()), thrust::raw_pointer_cast(md_parentIndex.data()), parentPair, static_cast<int>(md_parentIndex.size()), state);
 }

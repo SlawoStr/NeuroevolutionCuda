@@ -29,9 +29,9 @@ __global__ void procMutationKernel(float* weight, float mutationProbability, flo
 	state[threadIdx.x + blockIdx.x * blockDim.x] = threadState;
 }
 
-
-
-void CudaProcMutation::runMutation(thrust::device_vector<float>& newWeights, int weightPerModel, int parentModel, curandState* state, unsigned blockNumber, unsigned threadNumber)
+void CudaProcMutation::runMutation(thrust::device_vector<float>& newWeights, int weightPerModel, int parentNumber, curandState* state, unsigned blockNumber, unsigned threadNumber)
 {
-
+	procMutationKernel << <std::min(blockNumber, static_cast<unsigned>(parentNumber)), threadNumber >> >
+		(thrust::raw_pointer_cast(newWeights.data()), m_mutationProbability, m_geneMutationProbability, weightPerModel, parentNumber, state, m_minProc, m_maxProc);
 }
+

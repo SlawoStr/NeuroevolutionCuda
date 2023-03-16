@@ -29,7 +29,8 @@ __global__ void signMutationKernel(float* weight, float mutationProbability, flo
 	state[threadIdx.x + blockIdx.x * blockDim.x] = threadState;
 }
 
-void CudaSignMutation::runMutation(thrust::device_vector<float>& newWeights, int weightPerModel, int parentModel, curandState* state, unsigned blockNumber, unsigned threadNumber)
+void CudaSignMutation::runMutation(thrust::device_vector<float>& newWeights, int weightPerModel, int parentNumber, curandState* state, unsigned blockNumber, unsigned threadNumber)
 {
-
+	signMutationKernel << <std::min(blockNumber, static_cast<unsigned>(parentNumber)), threadNumber >> >
+		(thrust::raw_pointer_cast(newWeights.data()), m_mutationProbability, m_geneMutationProbability, weightPerModel, parentNumber, state);
 }

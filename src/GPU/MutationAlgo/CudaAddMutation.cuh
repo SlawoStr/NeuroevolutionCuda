@@ -18,7 +18,7 @@ public:
 		m_minAdd = addMin;
 		m_maxAdd = addMax;
 	}
-	void runMutation(thrust::device_vector<float>& newWeights, int weightPerModel, int parentModel, curandState* state, unsigned blockNumber, unsigned threadNumber) override;
+	void runMutation(thrust::device_vector<float>& newWeights, int weightPerModel, int parentNumber, curandState* state, unsigned blockNumber, unsigned threadNumber) override;
 
 private:
 	float m_minAdd;

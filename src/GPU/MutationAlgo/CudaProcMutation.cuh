@@ -18,7 +18,7 @@ public:
 		m_minProc = procMin;
 		m_maxProc = procMax;
 	}
-	void runMutation(thrust::device_vector<float>& newWeights, int weightPerModel, int parentModel, curandState* state, unsigned blockNumber, unsigned threadNumber) override;
+	void runMutation(thrust::device_vector<float>& newWeights, int weightPerModel, int parentNumber, curandState* state, unsigned blockNumber, unsigned threadNumber) override;
 
 private:
 	float m_minProc;
