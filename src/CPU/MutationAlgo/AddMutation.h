@@ -9,7 +9,6 @@ public:
 	{
 		setAddRange(addMin, addMax);
 	}
-
 	void setAddRange(float addMin, float addMax)
 	{
 		if (addMin >= addMax)
@@ -19,16 +18,17 @@ public:
 		m_minAdd = addMin;
 		m_maxAdd = addMax;
 	}
-
 	void runMutation(std::vector<float>& weight, std::mt19937& randEngine)
 	{
-		if (m_floatDistr(randEngine) < m_mutationProbability)
+		std::uniform_real_distribution<float> floatDistr{ 0.0f,1.0f };
+		std::uniform_real_distribution<float> addDistr{ m_minAdd,m_maxAdd };
+		if (floatDistr(randEngine) < m_mutationProbability)
 		{
 			for (auto& val : weight)
 			{
-				if (m_floatDistr(randEngine) < m_geneMutationProbability)
+				if (floatDistr(randEngine) < m_geneMutationProbability)
 				{
-					val += m_addDistr(randEngine);
+					val += addDistr(randEngine);
 				}
 			}
 		}
@@ -36,5 +36,4 @@ public:
 private:
 	float m_minAdd;
 	float m_maxAdd;
-	std::uniform_real_distribution<float> m_addDistr;
 };

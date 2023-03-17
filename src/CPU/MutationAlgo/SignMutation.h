@@ -8,11 +8,12 @@ public:
 	{}
 	void runMutation(std::vector<float>& weight, std::mt19937& randEngine)
 	{
-		if (m_floatDistr(randEngine) < m_mutationProbability)
+		std::uniform_real_distribution<float> floatDistr{ 0.0f,1.0f };
+		if (floatDistr(randEngine) < m_mutationProbability)
 		{
 			for (auto& val : weight)
 			{
-				if (m_floatDistr(randEngine) < m_geneMutationProbability)
+				if (floatDistr(randEngine) < m_geneMutationProbability)
 				{
 					val *= -1;
 				}

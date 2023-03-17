@@ -11,7 +11,6 @@ public:
 	{
 		setMutationProbability(mutationProbability);
 		setGeneMutationProbability(geneMutationProbability);
-		m_floatDistr = std::uniform_real_distribution<float>(0.0f, 1.0f);
 	}
 	void setMutationProbability(float mutationProbability)
 	{
@@ -33,5 +32,4 @@ public:
 protected:
 	float m_mutationProbability;
 	float m_geneMutationProbability;
-	std::uniform_real_distribution<float> m_floatDistr;
 };

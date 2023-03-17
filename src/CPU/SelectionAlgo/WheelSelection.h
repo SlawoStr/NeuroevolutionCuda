@@ -4,29 +4,50 @@
 class WheelSelection : public GeneticSelector
 {
 public:
-	WheelSelection()
+	WheelSelection(unsigned populationSize)
 	{
-		m_floatDistr = std::uniform_real_distribution<double>(0.0, 1.0);
+		m_cumulativeDistribution.resize(populationSize);
+	}
+
+	int runWheel(int populationSize, std::mt19937& randEngine)
+	{
+		std::uniform_real_distribution<double> floatDistr{ 0.0f,1.0f };
+		double randValue{ floatDistr(randEngine) };
+		int winnerID = populationSize;
+		for (int i = 1; i < populationSize; ++i)
+		{
+			if (randValue < m_cumulativeDistribution[i])
+			{
+				winnerID = i;
+				break;
+			}
+		}
+		return winnerID;
 	}
 
 	virtual void setSelector(const std::vector<std::pair<int, double>>& modelFitness) override
 	{
-		std::vector<double> fitnessValue;
-		fitnessValue.reserve(modelFitness.size());
-		std::transform(modelFitness.begin(), modelFitness.end(), std::back_inserter(fitnessValue), [](const auto& val) {return val.second; });
-		m_cumulativeDistribution = std::discrete_distribution<>(fitnessValue.begin(), fitnessValue.end());
+		double fitnessSum{};
+		for (const auto& value : modelFitness)
+		{
+			fitnessSum += value.second;
+		}
+		m_cumulativeDistribution[0] = modelFitness[0].second / fitnessSum;
+		for (int i = 1; i < m_cumulativeDistribution.size(); ++i)
+		{
+			m_cumulativeDistribution[i] = m_cumulativeDistribution[i - 1] + modelFitness[i].second / fitnessSum;
+		}
 	}
 	virtual std::pair<int, int> getParent(const std::vector<std::pair<int, double>>& modelFitness, std::mt19937& randEngine) override
 	{
-		int lhs = m_cumulativeDistribution(randEngine);
-		int rhs = m_cumulativeDistribution(randEngine);
+		int lhs = runWheel(static_cast<int>(modelFitness.size()), randEngine);
+		int rhs = runWheel(static_cast<int>(modelFitness.size()), randEngine);
 		while (lhs == rhs)
 		{
-			rhs = m_cumulativeDistribution(randEngine);
+			rhs = runWheel(static_cast<int>(modelFitness.size()), randEngine);
 		}
 		return { lhs,rhs };
 	}
 private:
-	std::discrete_distribution<> m_cumulativeDistribution;
-	std::uniform_real_distribution<double> m_floatDistr;
+	std::vector<double> m_cumulativeDistribution;
 };

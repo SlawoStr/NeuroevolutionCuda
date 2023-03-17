@@ -9,7 +9,6 @@ public:
 	GeneticCrossover(float crossProbability)
 	{
 		setCrossoverProbability(crossProbability);
-		m_floatDistr = std::uniform_real_distribution<float>(0.0f, 1.0f);
 	}
 	void setCrossoverProbability(float crossProbability)
 	{
@@ -20,9 +19,6 @@ public:
 		m_crossProbability = crossProbability;
 	}
 	virtual void runCrossover(std::vector<float>& lhs, std::vector<float>& rhs, std::mt19937& rangEngine) = 0;
-
-	virtual void setCrossover(size_t weightNumber) = 0;
 protected:
 	float m_crossProbability;
-	std::uniform_real_distribution<float> m_floatDistr;
 };

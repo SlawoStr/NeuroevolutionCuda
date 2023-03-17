@@ -15,24 +15,25 @@ public:
 		{
 			throw GeneticAlgorithmBadInput("Error: Minimum value to add cant be higher or equal to max value");
 		}
-		m_procAdd = procMin;
-		m_procAdd = procMax;
+		m_procMin = procMin;
+		m_procMax = procMax;
 	}
 	void runMutation(std::vector<float>& weight, std::mt19937& randEngine)
 	{
-		if (m_floatDistr(randEngine) < m_mutationProbability)
+		std::uniform_real_distribution<float> floatDistr{ 0.0f,1.0f };
+		std::uniform_real_distribution<float> procDistr{ m_procMin,m_procMax };
+		if (floatDistr(randEngine) < m_mutationProbability)
 		{
 			for (auto& val : weight)
 			{
-				if (m_floatDistr(randEngine) < m_geneMutationProbability)
+				if (floatDistr(randEngine) < m_geneMutationProbability)
 				{
-					val *= m_procDistr(randEngine);
+					val *= procDistr(randEngine);
 				}
 			}
 		}
 	}
 private:
-	float m_procAdd;
-	float m_procAdd;
-	std::uniform_real_distribution<float> m_procDistr;
+	float m_procMin;
+	float m_procMax;
 };

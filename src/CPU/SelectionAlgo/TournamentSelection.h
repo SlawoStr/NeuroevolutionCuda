@@ -21,12 +21,10 @@ public:
 			throw GeneticAlgorithmBadInput("Tournament size must be bigger than population size MinSize: 0 received: " + std::to_string(tournamentSize));
 		}
 		m_tournamentSize = tournamentSize;
-		m_intDistr = std::uniform_int_distribution<int>(0, populationSize);
 	}
 
 	virtual void setSelector(const std::vector<std::pair<int, double>>& modelFitness) override
 	{}
-
 
 	virtual std::pair<int, int> getParent(const std::vector<std::pair<int, double>>& modelFitness,std::mt19937& randEngine) override
 	{
@@ -42,10 +40,11 @@ public:
 private:
 	unsigned runTournament(const std::vector<std::pair<int, double>>& modelFitness, std::mt19937& randEngine)
 	{
-		int currentBest = m_intDistr(randEngine);
-		for (int i = 1; i < m_tournamentSize; ++i)
+		std::uniform_int_distribution<int> intDistr{ 0,static_cast<int>(modelFitness.size()) - 1 };
+		int currentBest = intDistr(randEngine);
+		for (unsigned i = 1; i < m_tournamentSize; ++i)
 		{
-			int newCompetitor = m_intDistr(randEngine);
+			int newCompetitor = intDistr(randEngine);
 			if (modelFitness[newCompetitor].second > modelFitness[currentBest].second)
 			{
 				currentBest = newCompetitor;
@@ -55,5 +54,4 @@ private:
 	}
 private:
 	unsigned m_tournamentSize;
-	std::uniform_int_distribution<int> m_intDistr;
 };
