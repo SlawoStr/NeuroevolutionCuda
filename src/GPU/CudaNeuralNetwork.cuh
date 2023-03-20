@@ -22,6 +22,8 @@ public:
 	void setWeight(const float* ptr, size_t size, bool isHostAllocated, unsigned threadNumber);
 
 	size_t getNetworkWeightSize();
+
+	size_t getModelNumber() const { return m_modelNumber; }
 private:
 	thrust::host_vector<CudaLayer> m_layers;
 	size_t m_modelNumber;

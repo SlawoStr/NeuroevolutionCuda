@@ -18,7 +18,10 @@ __device__ int randomInt(curandState& state, int minValue, int maxValue);
 /// <param name="minValue">Minimum value</param>
 /// <param name="maxValue">Maximum value</param>
 /// <returns>Random float</returns>
-__device__ float randomFloat(curandState& state, float minValue, float maxValue);
+__forceinline__ __device__ float randomFloat(curandState& state, float minValue, float maxValue)
+{
+	return curand_uniform(&state) * (maxValue - minValue) + minValue;
+}
 
 /// <summary>
 /// Generate random states for threads

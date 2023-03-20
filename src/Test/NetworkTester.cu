@@ -127,7 +127,7 @@ void NetworkTester::testPredictions()
 		}
 		else
 		{
-			std::cout << "ID: " << i << "\tGPU: " << gpuResult[i] << "\tCPU : " << cpuResult[i] << std::endl;
+			//std::cout << "ID: " << i << "\tGPU: " << gpuResult[i] << "\tCPU : " << cpuResult[i] << std::endl;
 			incorrectValues++;
 		}
 	}
@@ -186,6 +186,7 @@ void NetworkTester::testPredictionsSpeed()
 		t.start();
 		m_gpuNetwork.runPredictions(testInput.data(), testInput.size(), true, 64);
 		m_gpuNetwork.getPredictions(gpuResultVec.data(), gpuResultVec.size(), true);
+		cudaDeviceSynchronize();
 		t.stop();
 		gpuTime += t.measure();
 		gpuResult = std::accumulate(gpuResultVec.begin(), gpuResultVec.end(), 0.0f);
@@ -215,32 +216,31 @@ void NetworkTester::testPredictionsSpeed()
 void startNetworkTest()
 {
 	{
-		size_t inputSize{ 250 };
-		size_t outputSize{ 4 };
-		size_t modelNumber{ 100000 };
+		size_t inputSize{ 24 };
+		size_t outputSize{ 1 };
+		size_t modelNumber{ 30000 };
 		size_t testCount{ 10 };
 		ActivationFunction outActFunc = ActivationFunction::SIGMOID;
 
 		NetworkTester tester(inputSize, outputSize, modelNumber, testCount, outActFunc);
 
-		tester.addLayer(20, ActivationFunction::RELU);
-		tester.addLayer(10, ActivationFunction::RELU);
+		tester.addLayer(18, ActivationFunction::RELU);
+		tester.addLayer(18, ActivationFunction::RELU);
 		tester.runTest();
 	}
 	/*
 	{
-		size_t inputSize{ 3500 };
-		size_t outputSize{ 100 };
-		size_t modelNumber{ 50 };
-		size_t testCount{ 1 };
+		size_t inputSize{ 50 };
+		size_t outputSize{ 30 };
+		size_t modelNumber{ 5000 };
+		size_t testCount{ 10 };
 		ActivationFunction outActFunc = ActivationFunction::RELU;
 
 		NetworkTester tester(inputSize, outputSize, modelNumber, testCount, outActFunc);
 
-		//tester.addLayer(100, ActivationFunction::RELU);
-		//tester.addLayer(50, ActivationFunction::RELU);
+		tester.addLayer(40, ActivationFunction::RELU);
+		tester.addLayer(35, ActivationFunction::RELU);
 		tester.runTest();
 	}
 	*/
-
 }

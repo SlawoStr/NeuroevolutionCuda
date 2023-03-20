@@ -1,6 +1,7 @@
 #include "CudaLayer.cuh"
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
+#include "src/Utility/CudaError.h"
 
 template <unsigned int blockSize>
 __device__ void warpReduce(volatile float* sdata, unsigned int tid) {
@@ -20,7 +21,7 @@ __global__ void feedForwardCudaOTP(float* input, float* C, float* output, size_t
 	{
 		int modelID = tid / connectionNumber;
 		int neuronOffset = modelID * inNeuronPerModel;
-		int weightOffset = tid * (inNeuronPerModel + 1);
+		int weightOffset = tid * (inNeuronPerModel + 1);	
 		float sum{};
 		int i{};
 		for (i = 0; i < inNeuronPerModel; ++i)
@@ -63,38 +64,28 @@ __global__ void feedForwardGrid(float* input, float* C, float* output, size_t in
 	}
 }
 
-__global__ void mapModelWeightTo(float* src, float* des, size_t inNeuronPerModel,size_t connectionPerModel, size_t modelWeight, size_t taskSize)
+__global__ void mapModelWeightTo(float* src, float* des, size_t connectionPerModel, size_t modelWeight, size_t taskSize)
 {
-	int tid = threadIdx.x + blockIdx.x * blockDim.x;
-	if (tid < taskSize)
+	int srcOffset = blockIdx.x * connectionPerModel;
+	int desOffset = blockIdx.x * modelWeight;
+	for (int i = threadIdx.x; i < connectionPerModel; i += blockDim.x)
 	{
-		int connectionNumber = (inNeuronPerModel + 1) * connectionPerModel;
-		int srcOffset = tid * connectionNumber;
-		int desOffset = tid * modelWeight;
-		for (int i = 0; i < connectionNumber; ++i)
-		{
-			des[desOffset + i] = src[srcOffset + i];
-		}
+		des[desOffset + i] = src[srcOffset + i];
 	}
 }
 
-__global__ void mapModelWeightFrom(float* src, const float* des, size_t inNeuronPerModel,size_t connectionPerModel, size_t modelWeight, size_t taskSize)
+__global__ void mapModelWeightFrom(float* src, const float* des, size_t connectionPerModel, size_t modelWeight, size_t taskSize)
 {
-	int tid = threadIdx.x + blockIdx.x * blockDim.x;
-	if (tid < taskSize)
+	int srcOffset = blockIdx.x * connectionPerModel;
+	int desOffset = blockIdx.x * modelWeight;
+	for (int i = threadIdx.x; i < connectionPerModel; i += blockDim.x)
 	{
-		int connectionNumber = (inNeuronPerModel + 1) * connectionPerModel;
-		int srcOffset = tid * connectionNumber;
-		int desOffset = tid * modelWeight;
-		for (int i = 0; i < connectionNumber; ++i)
-		{
-			src[srcOffset + i] = des[desOffset + i];
-		}
+		src[srcOffset + i] = des[desOffset + i];
 	}
 }
 
 template<typename Func>
-void runFeedForwardKernel(float* input, float* C, float* output, size_t inNeuronPerModel, size_t connectionNumber, size_t outLayerSize, Func activationFunction, unsigned threadNumber)
+void runFeedForwardKernel(float* input, float* C, float* output, size_t inNeuronPerModel, size_t connectionNumber, size_t outLayerSize, Func activationFunction, unsigned threadNumber, size_t modelNumber)
 {
 	if (inNeuronPerModel < 32)
 	{
@@ -108,7 +99,7 @@ void runFeedForwardKernel(float* input, float* C, float* output, size_t inNeuron
 		{
 			sharedMemory *= 2;
 		}
-		
+
 		switch (sharedMemory)
 		{
 		case 1024:
@@ -216,7 +207,7 @@ void CudaLayer::feedForward(CudaLayer* next, unsigned threadNumber)
 			auto actFunc = [=] __device__(float x) {
 				return x <= 0 ? 0 : x;
 			};
-			runFeedForwardKernel(thrust::raw_pointer_cast(md_neurons.data()), thrust::raw_pointer_cast(md_weights.data()), thrust::raw_pointer_cast(next->md_neurons.data()), m_neuronPerModel, m_connectionPerNeuron, outLayerSize, actFunc, threadNumber);
+			runFeedForwardKernel(thrust::raw_pointer_cast(md_neurons.data()), thrust::raw_pointer_cast(md_weights.data()), thrust::raw_pointer_cast(next->md_neurons.data()), m_neuronPerModel, m_connectionPerNeuron, outLayerSize, actFunc, threadNumber,m_modelNumber);
 			break;
 		}
 		case ActivationFunction::TANH:
@@ -224,7 +215,7 @@ void CudaLayer::feedForward(CudaLayer* next, unsigned threadNumber)
 			auto actFunc = [=] __device__(float x) {
 				return tanh(x);
 			};
-			runFeedForwardKernel(thrust::raw_pointer_cast(md_neurons.data()), thrust::raw_pointer_cast(md_weights.data()), thrust::raw_pointer_cast(next->md_neurons.data()), m_neuronPerModel, m_connectionPerNeuron, outLayerSize, actFunc, threadNumber);
+			runFeedForwardKernel(thrust::raw_pointer_cast(md_neurons.data()), thrust::raw_pointer_cast(md_weights.data()), thrust::raw_pointer_cast(next->md_neurons.data()), m_neuronPerModel, m_connectionPerNeuron, outLayerSize, actFunc, threadNumber, m_modelNumber);
 			break;
 		}
 		case ActivationFunction::SIGMOID:
@@ -232,7 +223,7 @@ void CudaLayer::feedForward(CudaLayer* next, unsigned threadNumber)
 			auto actFunc = [=] __device__(float x) {
 				return 1.0f / (1.0f + exp(-x));
 			};
-			runFeedForwardKernel(thrust::raw_pointer_cast(md_neurons.data()), thrust::raw_pointer_cast(md_weights.data()), thrust::raw_pointer_cast(next->md_neurons.data()), m_neuronPerModel, m_connectionPerNeuron, outLayerSize, actFunc, threadNumber);
+			runFeedForwardKernel(thrust::raw_pointer_cast(md_neurons.data()), thrust::raw_pointer_cast(md_weights.data()), thrust::raw_pointer_cast(next->md_neurons.data()), m_neuronPerModel, m_connectionPerNeuron, outLayerSize, actFunc, threadNumber, m_modelNumber);
 			break;
 		}
 	}
@@ -245,14 +236,14 @@ size_t CudaLayer::getLayerSize() const
 
 void CudaLayer::getModelWeight(float* output, size_t modelOffset, unsigned threadNumber)
 {
-	int blockNumber = static_cast<int>((m_modelNumber + threadNumber - 1) / threadNumber);
-	mapModelWeightTo << <blockNumber, threadNumber >> > (thrust::raw_pointer_cast(md_weights.data()), output, m_neuronPerModel, m_connectionPerNeuron, modelOffset, m_modelNumber);
+	int connectionPerModel = (m_neuronPerModel + 1) * m_connectionPerNeuron;
+	mapModelWeightTo << <m_modelNumber, threadNumber >> > (thrust::raw_pointer_cast(md_weights.data()), output, connectionPerModel, modelOffset, m_modelNumber);
 }
 
 void CudaLayer::setModelWeight(const float* input, size_t modelOffset,unsigned threadNumber)
 {
-	int blockNumber = static_cast<int>((m_modelNumber + threadNumber - 1) / threadNumber);
-	mapModelWeightFrom << <blockNumber, threadNumber >> > (thrust::raw_pointer_cast(md_weights.data()), input, m_neuronPerModel, m_connectionPerNeuron, modelOffset, m_modelNumber);
+	int connectionPerModel = (m_neuronPerModel + 1) * m_connectionPerNeuron;
+	mapModelWeightFrom << <m_modelNumber, threadNumber >> > (thrust::raw_pointer_cast(md_weights.data()), input, connectionPerModel, modelOffset, m_modelNumber);
 }
 
 void CudaLayer::initLayer()

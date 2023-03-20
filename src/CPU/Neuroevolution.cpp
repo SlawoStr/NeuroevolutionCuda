@@ -52,13 +52,13 @@ Neuroevolution::Neuroevolution(const NeuralNetwork& network, size_t modelNumber,
 void Neuroevolution::run(std::vector<std::pair<int, double>>& modelFitness)
 {
 	m_selector->setSelector(modelFitness);
-	#pragma omp parallel default(none) num_threads(m_threadNumber)
+	#pragma omp parallel num_threads(m_threadNumber)
 	{
 		std::mt19937& threadEngine{ m_randEngine[omp_get_thread_num()] };
 		std::vector<float> lhsWeight(m_weightIn[0].size());
-		std::vector<float> rhsWeight(m_weightIn[1].size());
+		std::vector<float> rhsWeight(m_weightIn[0].size());
 		#pragma omp for
-		for (int i = 0; i < m_parentPairNumber; i++)
+		for (int i = 0; i < static_cast<int>(m_parentPairNumber); ++i)
 		{
 			// Select and get parent weights
 			auto parents = m_selector->getParent(modelFitness, threadEngine);
@@ -75,7 +75,7 @@ void Neuroevolution::run(std::vector<std::pair<int, double>>& modelFitness)
 		}
 	}
 	std::swap(m_weightIn, m_weightOut);
-	// Elite selection
+	// Elite selection	
 	auto swapIndex = generateSwapParentIndex(modelFitness, m_parentPairNumber * 2);
 	for (int i = 0; i < swapIndex.size(); ++i)
 	{

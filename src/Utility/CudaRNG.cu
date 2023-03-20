@@ -21,13 +21,6 @@ __device__ int randomInt(curandState& state, int minValue, int maxValue)
 }
 
 ////////////////////////////////////////////////////////////
-__device__ float randomFloat(curandState& state, float minValue, float maxValue)
-{
-	float randomValue = curand_uniform(&state);
-	return randomValue * (maxValue - minValue) + minValue;
-}
-
-////////////////////////////////////////////////////////////
 __global__ void kernelRandomInt(int minValue, int maxValue, size_t size, int* d_arr, curandState* state)
 {
 	int tid = threadIdx.x + blockDim.x * blockIdx.x;

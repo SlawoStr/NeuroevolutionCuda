@@ -41,6 +41,7 @@
     <ClInclude Include="src\GPU\CrossoverAlgo\CudaUniformCrossover.cuh" />
     <ClInclude Include="src\GPU\CudaLayer.cuh" />
     <ClInclude Include="src\GPU\CudaNeuralNetwork.cuh" />
+    <ClInclude Include="src\GPU\CudaNeuroevolution.cuh" />
     <ClInclude Include="src\GPU\MutationAlgo\CudaAddMutation.cuh" />
     <ClInclude Include="src\GPU\MutationAlgo\CudaGeneticMutator.cuh" />
     <ClInclude Include="src\GPU\MutationAlgo\CudaNewMutation.cuh" />
@@ -62,11 +63,13 @@
     <ClInclude Include="src\Utility\Timer.h" />
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="src\cudaSource.cu" />
     <CudaCompile Include="src\GPU\CrossoverAlgo\CudaMPCCrossover.cu" />
     <CudaCompile Include="src\GPU\CrossoverAlgo\CudaSPCCrossover.cu" />
     <CudaCompile Include="src\GPU\CrossoverAlgo\CudaUniformCrossover.cu" />
     <CudaCompile Include="src\GPU\CudaLayer.cu" />
     <CudaCompile Include="src\GPU\CudaNeuralNetwork.cu" />
+    <CudaCompile Include="src\GPU\CudaNeuroevolution.cu" />
     <CudaCompile Include="src\GPU\MutationAlgo\CudaAddMutation.cu" />
     <CudaCompile Include="src\GPU\MutationAlgo\CudaNewMutation.cu" />
     <CudaCompile Include="src\GPU\MutationAlgo\CudaProcMutation.cu" />
@@ -139,6 +142,7 @@
       <AdditionalIncludeDirectories>$(SolutionDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <OpenMPSupport>true</OpenMPSupport>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

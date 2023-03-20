@@ -2,6 +2,11 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
+__forceinline__ __device__ float randomFloat2(curandState& state, float minValue, float maxValue)
+{
+	return curand_uniform(&state) * (maxValue - minValue) + minValue;
+}
+
 __global__ void newMutationKernel(float* weight, float mutationProbability, float geneMutationProbability, int weightPerModel, int taskNumber, curandState* state)
 {
 	__shared__ float mutationProba;
@@ -15,12 +20,13 @@ __global__ void newMutationKernel(float* weight, float mutationProbability, floa
 		__syncthreads();
 		if (mutationProba < mutationProbability)
 		{
+			int weightOffset = i * weightPerModel;
 			// Loop over genes
 			for (int j = threadIdx.x; j < weightPerModel; j += blockDim.x)
 			{
 				if (randomFloat(threadState, 0.0f, 1.0f) < geneMutationProbability)
 				{
-					weight[i * weightPerModel + j] = randomFloat(threadState, -1.0f, 1.0f);
+					weight[weightOffset + j] = randomFloat(threadState, -1.0f, 1.0f);
 				}
 			}
 		}
