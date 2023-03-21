@@ -7,13 +7,13 @@
 #include "src/Utility/Timer.h"
 #include "src/Test/NetworkTester.cuh"
 
-
+/*
 int main()
 {
 	// NETWORK TESTER
-	startNetworkTest();
+	//startNetworkTest();
 	
-	/*
+	
 	size_t modelNumber{ 20000 };
 	size_t parentPairNumber{ 9900 };
 
@@ -41,5 +41,7 @@ int main()
 		t.stop();
 		std::cout << t.measure() * 1000 << std::endl;
 	}
-	*/
+	
 }
+
+*/

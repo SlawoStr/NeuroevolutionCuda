@@ -217,8 +217,8 @@ void startNetworkTest()
 {
 	{
 		size_t inputSize{ 24 };
-		size_t outputSize{ 1 };
-		size_t modelNumber{ 30000 };
+		size_t outputSize{ 4 };
+		size_t modelNumber{ 5000 };
 		size_t testCount{ 10 };
 		ActivationFunction outActFunc = ActivationFunction::SIGMOID;
 

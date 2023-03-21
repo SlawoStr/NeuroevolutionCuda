@@ -10,14 +10,15 @@
 #include "CPU/CrossoverAlgo/MPCCrossover.h"
 #include "CPU/CrossoverAlgo/UniformCrossover.h"
 #include "CPU/MutationAlgo/AddMutation.h"
+#include "CPU/MutationAlgo/NewMutation.h"
 #include <src/Utility/Timer.h>
 
 
 /*
 int main()
 {
-    size_t modelNumber{ 5000 };
-    size_t parentPairNumber{ 2400 };
+    size_t modelNumber{ 20000 };
+    size_t parentPairNumber{ 9900 };
     for (int i = 1; i <= 20; ++i)
     {
         NeuralNetwork network(30, 10, ActivationFunction::SIGMOID);
@@ -25,8 +26,8 @@ int main()
         network.addLayer(15, ActivationFunction::RELU);
         Neuroevolution manager(network, modelNumber, parentPairNumber, i);
         manager.setSelection<WheelSelection>(modelNumber);
-        manager.setCrossover<UniformCrossover>(0.9f);
-        manager.setMutation<AddMutation>(1.0f, 0.1f, -0.25f, 0.25f);
+        manager.setCrossover<MPCCrossover>(0.9f);
+        manager.setMutation<NewMutation>(1.0f, 0.1f);
         std::vector<std::pair<int, double>>  fitnessVec;
         for (int i = 0; i < modelNumber; ++i)
         {
