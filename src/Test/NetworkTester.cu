@@ -216,9 +216,9 @@ void NetworkTester::testPredictionsSpeed()
 void startNetworkTest()
 {
 	{
-		size_t inputSize{ 24 };
-		size_t outputSize{ 4 };
-		size_t modelNumber{ 5000 };
+		size_t inputSize{ 20 };
+		size_t outputSize{ 10 };
+		size_t modelNumber{ 20000 };
 		size_t testCount{ 10 };
 		ActivationFunction outActFunc = ActivationFunction::SIGMOID;
 

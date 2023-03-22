@@ -13,6 +13,7 @@ __device__ void warpReduce(volatile float* sdata, unsigned int tid) {
 	if (blockSize >= 2) sdata[tid] += sdata[tid + 1];
 }
 
+
 template<typename Func>
 __global__ void feedForwardCudaOTP(float* input, float* C, float* output, size_t inNeuronPerModel, size_t connectionNumber, size_t outLayerSize, Func activationFunction)
 {
@@ -34,6 +35,30 @@ __global__ void feedForwardCudaOTP(float* input, float* C, float* output, size_t
 		output[tid] = activationFunction(sum);
 	}
 }
+
+/*
+template<typename Func>
+__global__ void feedForwardCudaOTP2(float* input, float* C, float* output, size_t inNeuronPerModel, size_t connectionNumber, size_t outLayerSize, Func activationFunction,int allConnNumber)
+{
+	int tid = threadIdx.x + blockIdx.x * blockDim.x;
+	if (tid < outLayerSize)
+	{
+		//int modelID = tid / connectionNumber;
+		int neuronOffset = 0;
+		float sum{};
+		int i{};
+
+		for (i = blockIdx.x * blockDim.x + threadIdx.x; i < allConnNumber; i += blockDim.x * gridDim.x)
+		{
+			sum += input[neuronOffset++] * C[i];
+		}
+		// Add bias weigh
+		sum += C[i];
+		// Use Activation function
+		output[tid] = activationFunction(sum);
+	}
+}
+*/
 
 template<unsigned int blockSize,typename Func>
 __global__ void feedForwardGrid(float* input, float* C, float* output, size_t inNeuronPerModel, size_t connectionNumber, size_t outLayerSize, Func activationFunction)
@@ -64,7 +89,7 @@ __global__ void feedForwardGrid(float* input, float* C, float* output, size_t in
 	}
 }
 
-__global__ void mapModelWeightTo(float* src, float* des, size_t connectionPerModel, size_t modelWeight, size_t taskSize)
+__global__ void mapModelWeightTo(float* src, float* des, int connectionPerModel, int modelWeight, int taskSize)
 {
 	int srcOffset = blockIdx.x * connectionPerModel;
 	int desOffset = blockIdx.x * modelWeight;
@@ -74,7 +99,7 @@ __global__ void mapModelWeightTo(float* src, float* des, size_t connectionPerMod
 	}
 }
 
-__global__ void mapModelWeightFrom(float* src, const float* des, size_t connectionPerModel, size_t modelWeight, size_t taskSize)
+__global__ void mapModelWeightFrom(float* src, const float* des, int connectionPerModel, int modelWeight, int taskSize)
 {
 	int srcOffset = blockIdx.x * connectionPerModel;
 	int desOffset = blockIdx.x * modelWeight;
@@ -89,8 +114,12 @@ void runFeedForwardKernel(float* input, float* C, float* output, size_t inNeuron
 {
 	if (inNeuronPerModel < 32)
 	{
-		feedForwardCudaOTP << <(static_cast<unsigned>(outLayerSize + threadNumber - 1)) / threadNumber, threadNumber >> >
-			(input, C, output, inNeuronPerModel, connectionNumber, outLayerSize, activationFunction);
+		
+		//feedForwardCudaOTP << <(static_cast<unsigned>(outLayerSize + threadNumber - 1)) / threadNumber, threadNumber >> >
+		//	(input, C, output, inNeuronPerModel, connectionNumber, outLayerSize, activationFunction);
+
+		//feedForwardCudaOTP2 << <(static_cast<unsigned>(outLayerSize + threadNumber - 1)) / threadNumber, threadNumber >> >
+		//	(input, C, output, inNeuronPerModel, connectionNumber, outLayerSize, activationFunction, modelNumber * connectionNumber);
 	}
 	else
 	{
