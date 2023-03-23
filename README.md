@@ -2,6 +2,8 @@
 
 Implementation of gpu - accelerated classical neuroevolution.
 
+# Implemented algorithms
+
 Selection Algorithms:
 
 - Truncation Selection
