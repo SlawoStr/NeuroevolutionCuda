@@ -50,10 +50,10 @@ Configuration:
 
 ||Config 1|Config 2|Config 3|Config 4|  
 |---|---|---|---|---|
-|*Population Size*|||||
-|Parent Number|||||
-|Network topology|||||
-|Selection|||||
+|*Population Size*|5000|5000|5000|5000|
+|Parent Number|4800|4800|4800|4800|
+|Network topology|30-15-5|30-15-5|30-25-15-10|30-25-15-10|
+|Selection|Truncation|Tournament|Roulette|Tournament|
 |Crossover|||||
 |Mutation|||||
 
