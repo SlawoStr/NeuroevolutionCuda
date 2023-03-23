@@ -62,7 +62,7 @@ Results:
 ||Config 1|Config 2|Config 3|Config 4|  
 |---|---|---|---|---|
 |*CPU*|||||
-|GPU|||||
+|GPU|0.56ms||||
 
 
 
