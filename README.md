@@ -54,8 +54,8 @@ Configuration:
 |Parent Number|4800|4800|4800|4800|
 |Network topology|30-15-5|30-15-5|30-25-15-10|30-25-15-10|
 |Selection|Truncation|Tournament|Roulette|Tournament|
-|Crossover|||||
-|Mutation|||||
+|Crossover|SPC|MPC|Uniform|MPC|
+|Mutation|ADD|NEW|SIGN|PROC|
 
 
 
