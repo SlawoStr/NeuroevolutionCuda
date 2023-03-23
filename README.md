@@ -57,7 +57,10 @@ Configuration:
 |Crossover|SPC|MPC|Uniform|MPC|
 |Mutation|ADD|NEW|SIGN|PROC|
 
-
+||Config 1|Config 2|Config 3|Config 4|  
+|---|---|---|---|---|
+|*CPU*|5000|5000|5000|5000|
+|GPU|5000|5000|5000|5000|
 
 
 
