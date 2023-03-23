@@ -46,4 +46,19 @@ manager.run(fitnessVec);
 
 # Performance v1.0
 
+Configuration:   
+
+|Config 1|Config 2|Config 3|Config 4|  
+|---|---|---|---|
+|*1'000*|3|784-5-10|5ms|
+|10'000|3|784-5-10|51.6ms|
+|1'000|4|24-18-18-4|0.76ms|
+|10'000|4|24-18-18-4|8.6ms|
+
+
+
+
+
+
+
 
