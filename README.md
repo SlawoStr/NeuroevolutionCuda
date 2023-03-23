@@ -6,8 +6,8 @@ Implementation of gpu - accelerated classical neuroevolution.
 
 Selection Algorithms:
 
-- Truncation Selection
-- Wheel Selection
+- Truncation Selection ( Insufficient computation to fully utilize gpu power ) 
+- Wheel Selection (Warp divergence problem ( CPU execution is much better ))
 - Tournament Selection
 
 Crossover Algorithms:
