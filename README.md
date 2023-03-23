@@ -44,6 +44,6 @@ manager.setMutation<CudaNewMutation>(0.8f, 0.05f);
 manager.run(fitnessVec);
 ```
 
-# Performance 1.0v
+# Performance v1.0
 
 
