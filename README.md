@@ -43,3 +43,7 @@ manager.setMutation<CudaNewMutation>(0.8f, 0.05f);
 // Run neuroevolution
 manager.run(fitnessVec);
 ```
+
+# Performance
+
+
