@@ -13,9 +13,8 @@ __global__ void kernelInitRandomState(unsigned seed, curandState* state)
 ////////////////////////////////////////////////////////////
 __device__ int randomInt(curandState& state, int minValue, int maxValue)
 {
-	maxValue -= 1;
 	float randomValue = curand_uniform(&state);
-	randomValue *= (maxValue - minValue + 0.999999);
+	randomValue *= ((maxValue-1) - minValue + 0.999999);
 	randomValue += minValue;
 	return (int)truncf(randomValue);
 }

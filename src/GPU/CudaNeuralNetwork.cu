@@ -30,7 +30,7 @@ void CudaNeuralNetwork::addLayer(size_t neuronNumber, ActivationFunction actFunc
 	(*--it).setConnections(neuronNumber);
 }
 
-void CudaNeuralNetwork::runPredictions(const float* ptr, size_t size, bool isHostAllocated, unsigned threadNumber)
+void CudaNeuralNetwork::runPredictions(const float* ptr, size_t size, bool isHostAllocated)
 {
 	size_t layerSize = m_layers[0].getLayerSize();
 	if (size != layerSize)
@@ -40,7 +40,7 @@ void CudaNeuralNetwork::runPredictions(const float* ptr, size_t size, bool isHos
 	m_layers[0].setNeurons(ptr, isHostAllocated);
 	for (int i = 0; i < m_layers.size() - 1; ++i)
 	{
-		m_layers[i].feedForward(&m_layers[i + 1], threadNumber);
+		m_layers[i].feedForward(&m_layers[i + 1]);
 	}
 }
 
@@ -54,7 +54,7 @@ void CudaNeuralNetwork::getPredictions(float* ptr, size_t size, bool isHostAlloc
 	m_layers.back().getNeurons(ptr, isHostAllocated);
 }
 
-void CudaNeuralNetwork::getWeight(float* ptr, size_t size, bool isHostAllocated, unsigned threadNumber)
+void CudaNeuralNetwork::getWeight(float* ptr, size_t size, bool isHostAllocated)
 {
 	size_t weightSize{};
 	size_t modelWeight{};
@@ -72,24 +72,23 @@ void CudaNeuralNetwork::getWeight(float* ptr, size_t size, bool isHostAllocated,
 	{
 		for (auto it = m_layers.begin(); it != m_layers.end() - 1; ++it)
 		{
-			(*it).getModelWeight(ptr + layerOffset, modelWeight, threadNumber);
+			(*it).getModelWeight(ptr + layerOffset, modelWeight);
 			layerOffset += (*it).getWeightSize() / m_modelNumber;
 		}
 	}
 	else
 	{
 		thrust::device_vector<float> devVec(size);
-		cudaMemcpy(thrust::raw_pointer_cast(devVec.data()), ptr, sizeof(float) * size, cudaMemcpyHostToDevice);
 		for (auto it = m_layers.begin(); it != m_layers.end() - 1; ++it)
 		{
-			(*it).getModelWeight(thrust::raw_pointer_cast(devVec.data()) + layerOffset, modelWeight, threadNumber);
+			(*it).getModelWeight(thrust::raw_pointer_cast(devVec.data()) + layerOffset, modelWeight);
 			layerOffset += (*it).getWeightSize() / m_modelNumber;
 		}
 		cudaMemcpy(ptr, thrust::raw_pointer_cast(devVec.data()), sizeof(float) * size, cudaMemcpyDeviceToHost);
 	}
 }
 
-void CudaNeuralNetwork::setWeight(const float* ptr, size_t size, bool isHostAllocated, unsigned threadNumber)
+void CudaNeuralNetwork::setWeight(const float* ptr, size_t size, bool isHostAllocated)
 {
 	size_t weightSize = getNetworkWeightSize();
 	size_t modelWeight{};
@@ -103,7 +102,7 @@ void CudaNeuralNetwork::setWeight(const float* ptr, size_t size, bool isHostAllo
 	{
 		for (auto it = m_layers.begin(); it != m_layers.end() - 1; ++it)
 		{
-			(*it).setModelWeight(ptr + layerOffset, modelWeight, threadNumber);
+			(*it).setModelWeight(ptr + layerOffset, modelWeight);
 			layerOffset += (*it).getWeightSize() / m_modelNumber;
 		}
 	}
@@ -113,7 +112,7 @@ void CudaNeuralNetwork::setWeight(const float* ptr, size_t size, bool isHostAllo
 		cudaMemcpy(thrust::raw_pointer_cast(devVec.data()), ptr, sizeof(float) * size, cudaMemcpyHostToDevice);
 		for (auto it = m_layers.begin(); it != m_layers.end() - 1; ++it)
 		{
-			(*it).setModelWeight(thrust::raw_pointer_cast(devVec.data()) + layerOffset, modelWeight, threadNumber);
+			(*it).setModelWeight(thrust::raw_pointer_cast(devVec.data()) + layerOffset, modelWeight);
 			layerOffset += (*it).getWeightSize() / m_modelNumber;
 		}
 	}

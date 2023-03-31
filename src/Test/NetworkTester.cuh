@@ -15,7 +15,7 @@ private:
 	void testPredictions();
 	void testPredictionsSpeed();
 private:
-	NeuralNetwork m_cpuNetwork;
+	std::vector<NeuralNetwork> m_cpuNetwork;
 	CudaNeuralNetwork m_gpuNetwork;
 	size_t m_inputSize;
 	size_t m_outputSize;

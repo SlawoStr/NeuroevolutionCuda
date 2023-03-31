@@ -13,13 +13,13 @@ public:
 
 	void addLayer(size_t neuronNumber, ActivationFunction actFunc);
 
-	void runPredictions(const float* ptr, size_t size, bool isHostAllocated, unsigned threadNumber);
+	void runPredictions(const float* ptr, size_t size, bool isHostAllocated);
 
 	void getPredictions(float* ptr, size_t size, bool isHostAllocated);
 
-	void getWeight(float* ptr, size_t size, bool isHostAllocated, unsigned threadNumber);
+	void getWeight(float* ptr, size_t size, bool isHostAllocated);
 
-	void setWeight(const float* ptr, size_t size, bool isHostAllocated, unsigned threadNumber);
+	void setWeight(const float* ptr, size_t size, bool isHostAllocated);
 
 	size_t getNetworkWeightSize();
 

@@ -16,11 +16,11 @@
 #include <src/Utility/Timer.h>
 
 
-
+/*
 int main()
 {
-    size_t modelNumber{ 5000 };
-    size_t parentPairNumber{ 2400 };
+    size_t modelNumber{ 10000 };
+    size_t parentPairNumber{ 4800 };
     for (int i = 1; i <= 20; ++i)
     {
         // Create neural network
@@ -29,9 +29,9 @@ int main()
         // Create neuroevolution
         Neuroevolution manager(network, modelNumber, parentPairNumber, i);
         // Set genetic operators
-        manager.setSelection<TruncationSelection>(modelNumber, 0.3f);
-        manager.setCrossover<SPCCrossover>(0.9f);
-        manager.setMutation<AddMutation>(0.8f, 0.05f, -0.25f, 0.25f);
+        manager.setSelection<TournamentSelection>(modelNumber, 5);
+        manager.setCrossover<MPCCrossover>(0.9f);
+        manager.setMutation<ProcMutation>(0.8f, 0.05f, -0.25f, 0.25f);
         std::vector<std::pair<int, double>>  fitnessVec;
         for (int i = 0; i < modelNumber; ++i)
         {
@@ -50,3 +50,5 @@ int main()
     }
     return 0;
 }
+
+*/

@@ -21,7 +21,7 @@ CudaNeuroevolution::CudaNeuroevolution(CudaNeuralNetwork& network, unsigned pare
 
 	randomFloat(blockNumber, threadNumber, -1.0f, 1.0f, md_inWeights.size(), thrust::raw_pointer_cast(md_inWeights.data()), md_states);
 
-	md_network.setWeight(thrust::raw_pointer_cast(md_inWeights.data()), md_inWeights.size(), false, threadNumber);
+	md_network.setWeight(thrust::raw_pointer_cast(md_inWeights.data()), md_inWeights.size(), false);
 }
 
 void CudaNeuroevolution::run(std::vector<std::pair<int, double>>&modelFitness)
@@ -51,6 +51,6 @@ void CudaNeuroevolution::run(std::vector<std::pair<int, double>>&modelFitness)
 	// Mutation
 	m_mutator->runMutation(md_outWeights, weightPerModel, parentNumber, md_states, m_blockNumber, m_threadNumber);
 	// Weight transfer to neural network
-	md_network.setWeight(thrust::raw_pointer_cast(md_outWeights.data()), md_outWeights.size(), false, m_threadNumber);
+	md_network.setWeight(thrust::raw_pointer_cast(md_outWeights.data()), md_outWeights.size(), false);
 	md_outWeights.swap(md_inWeights);
 }

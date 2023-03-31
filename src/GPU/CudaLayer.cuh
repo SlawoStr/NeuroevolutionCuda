@@ -36,18 +36,6 @@ public:
 	/// <param name="isHostAllocated">Is array host allocated (allocated on cpu)</param>
 	void getNeurons(float* output, bool isHostAllocated);
 	/// <summary>
-	/// Copy weights from given array to weight vector
-	/// </summary>
-	/// <param name="input">Input array containing values for all weights in layer</param>
-	/// <param name="isHostAllocated">Is array host allocated (allocated on cpu)</param>
-	void setWeight(const float* input, bool isHostAllocated);
-	/// <summary>
-	/// Copy weights to given array from weights vector
-	/// </summary>
-	/// <param name="output">Output array with size that can fit all weights</param>
-	/// <param name="isHostAllocated">Is array host allocated (allocated on cpu)</param>
-	void getWeight(float* output, bool isHostAllocated);
-	/// <summary>
 	/// Set number of connections in layer ( number of neurons in next layer )
 	/// </summary>
 	/// <param name="connectionNumber">Connections per neuron</param>
@@ -57,7 +45,7 @@ public:
 	/// </summary>
 	/// <param name="next">Pointer to next layer</param>
 	/// <param name="threadNumber">Number of threads</param>
-	void feedForward(CudaLayer* next, unsigned threadNumber);
+	void feedForward(CudaLayer* next);
 	/// <summary>
 	/// Get number of neurons per each model in this layer
 	/// </summary>
@@ -79,13 +67,13 @@ public:
 	/// </summary>
 	/// <param name="output">Pointer to element in global array from which elements should be inserted</param>
 	/// <param name="modelOffset">Number of weights of each model</param>
-	void getModelWeight(float* output, size_t modelOffset, unsigned threadNumber);
+	void getModelWeight(float* output, size_t modelOffset);
 	/// <summary>
 	/// Set model weights from global array
 	/// </summary>
 	/// <param name="input">Pointer to element in global array from which elements should be copied</param>
 	/// <param name="modelOffset">Number of weights of each model</param>
-	void setModelWeight(const float* input, size_t modelOffset, unsigned threadNumber);
+	void setModelWeight(const float* input, size_t modelOffset);
 private:
 	/// <summary>
 	/// Initialize layer parameters
@@ -98,4 +86,10 @@ private:
 	ActivationFunction m_actFunc;				//!< Activation function
 	thrust::device_vector<float> md_neurons;	//!< Neuron device vector
 	thrust::device_vector<float> md_weights;	//!< Weights device vector
+	// Additional
+	int m_threadNumber{ 32 };					//!< Number of threads for gpu kernel
+	int m_blockNumber;							//!< Number of blocks for gpu kernel
+	int m_batchSize{ 32 };						//!< Number of neuonr to process for each batch
+	int m_weightPerBlock;						//!< Number of weights for each block
+	int m_stride;								//!< Number of output neurons to process by last block
 };

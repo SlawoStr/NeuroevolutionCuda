@@ -2,163 +2,157 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 #include "src/Utility/CudaError.h"
-
-template <unsigned int blockSize>
-__device__ void warpReduce(volatile float* sdata, unsigned int tid) {
-	if (blockSize >= 64) sdata[tid] += sdata[tid + 32];
-	if (blockSize >= 32) sdata[tid] += sdata[tid + 16];
-	if (blockSize >= 16) sdata[tid] += sdata[tid + 8];
-	if (blockSize >= 8) sdata[tid] += sdata[tid + 4];
-	if (blockSize >= 4) sdata[tid] += sdata[tid + 2];
-	if (blockSize >= 2) sdata[tid] += sdata[tid + 1];
-}
-
+#include "src/Utility/Timer.h"
 
 template<typename Func>
-__global__ void feedForwardCudaOTP(float* input, float* C, float* output, size_t inNeuronPerModel, size_t connectionNumber, size_t outLayerSize, Func activationFunction)
+__global__ void feedForwardOptimized(float* input, float* C, float* output, int inNeuronPerModel, int connectionNumber, int weightPerKernel, int weightNumber, int stride, Func activationFunction)
 {
 	int tid = threadIdx.x + blockIdx.x * blockDim.x;
-	if (tid < outLayerSize)
+	// Index of first neuron in model
+	int neuronIndex = tid / connectionNumber * inNeuronPerModel;
+	// Weight loop settings
+	int outNeuronNumber = blockIdx.x != (gridDim.x - 1) ? blockDim.x : stride;
+	int startIndex = blockIdx.x * weightPerKernel + threadIdx.x;
+	int endIndex = blockIdx.x == (gridDim.x - 1) ? weightNumber : (blockIdx.x + 1) * weightPerKernel;
+	// Dont process last batch of connectons (bias connection)
+	endIndex -= outNeuronNumber;
+	// Sum connections
+	float sum{};
+	int i{};
+	for (i = startIndex; i < endIndex; i += outNeuronNumber)
 	{
-		int modelID = tid / connectionNumber;
-		int neuronOffset = modelID * inNeuronPerModel;
-		int weightOffset = tid * (inNeuronPerModel + 1);	
-		float sum{};
-		int i{};
-		for (i = 0; i < inNeuronPerModel; ++i)
-		{
-			sum += input[neuronOffset + i] * C[weightOffset + i];
-		}
-		// Add bias weigh
-		sum += C[weightOffset + i];
-		// Use Activation function
-		output[tid] = activationFunction(sum);
+		sum += input[neuronIndex++] * C[i];
 	}
+	// Add bias weigh
+	sum += C[i];
+	// Use Activation function
+	output[tid] = activationFunction(sum);
 }
 
-/*
-template<typename Func>
-__global__ void feedForwardCudaOTP2(float* input, float* C, float* output, size_t inNeuronPerModel, size_t connectionNumber, size_t outLayerSize, Func activationFunction,int allConnNumber)
-{
-	int tid = threadIdx.x + blockIdx.x * blockDim.x;
-	if (tid < outLayerSize)
-	{
-		//int modelID = tid / connectionNumber;
-		int neuronOffset = 0;
-		float sum{};
-		int i{};
-
-		for (i = blockIdx.x * blockDim.x + threadIdx.x; i < allConnNumber; i += blockDim.x * gridDim.x)
-		{
-			sum += input[neuronOffset++] * C[i];
-		}
-		// Add bias weigh
-		sum += C[i];
-		// Use Activation function
-		output[tid] = activationFunction(sum);
-	}
-}
-*/
-
-template<unsigned int blockSize,typename Func>
-__global__ void feedForwardGrid(float* input, float* C, float* output, size_t inNeuronPerModel, size_t connectionNumber, size_t outLayerSize, Func activationFunction)
+__global__ void mapModelWeightToSharedBatch(float* src, float* des, int inNeuronPerModel, int connectionNumber, int weightPerKernel, int weightNumber, int stride, int weightPerModel, int batchSize)
 {
 	extern __shared__ float sdata[];
-	int tid = threadIdx.x;
-	int modelID = blockIdx.x / connectionNumber;
-	int neuronOffset = modelID * inNeuronPerModel;
-	int weightOffset = blockIdx.x * (inNeuronPerModel + 1);
 
-	sdata[tid] = input[neuronOffset + tid] * C[weightOffset + tid];
-	for (int i = tid + blockDim.x; i < inNeuronPerModel; i += blockDim.x)
+	// Index of weight that belong to this block
+	int startIndex = blockIdx.x * weightPerKernel + threadIdx.x;
+	int endIndex = blockIdx.x == (gridDim.x - 1) ? weightNumber : (blockIdx.x + 1) * weightPerKernel;
+	// Number of data batches to process
+	int elementPerBatch = blockIdx.x != (gridDim.x - 1) ? batchSize * blockDim.x : batchSize * stride;
+	// Number of neurons that will be processed by this block
+	int outNeuronNumber = blockIdx.x != (gridDim.x - 1) ? blockDim.x : stride;
+	// Number of neurons that were already added
+	int weightOffset = threadIdx.x;
+	int loopCounter{ 1 };
+	// For each batch
+	for (int i = startIndex, lastBatchElement = startIndex + elementPerBatch; i < endIndex; i += elementPerBatch, lastBatchElement += elementPerBatch)
 	{
-		sdata[tid] += input[neuronOffset + i] * C[weightOffset + i];
-	}
-	__syncthreads();
-	// Reduction
-	if (blockSize >= 1024) { if (tid < 512) { sdata[tid] += sdata[tid + 512]; } __syncthreads(); }
-	if (blockSize >= 512) { if (tid < 256) { sdata[tid] += sdata[tid + 256]; } __syncthreads(); }
-	if (blockSize >= 256) { if (tid < 128) { sdata[tid] += sdata[tid + 128]; } __syncthreads(); }
-	if (blockSize >= 128) { if (tid < 64) { sdata[tid] += sdata[tid + 64]; } __syncthreads(); }
-
-	if (tid < 32) warpReduce<blockSize>(sdata, tid);
-	// Copy result from shared memory
-	if (tid == 0)
-	{
-		output[blockIdx.x] = activationFunction(sdata[0] + C[weightOffset + inNeuronPerModel]);
-	}
-}
-
-__global__ void mapModelWeightTo(float* src, float* des, int connectionPerModel, int modelWeight, int taskSize)
-{
-	int srcOffset = blockIdx.x * connectionPerModel;
-	int desOffset = blockIdx.x * modelWeight;
-	for (int i = threadIdx.x; i < connectionPerModel; i += blockDim.x)
-	{
-		des[desOffset + i] = src[srcOffset + i];
-	}
-}
-
-__global__ void mapModelWeightFrom(float* src, const float* des, int connectionPerModel, int modelWeight, int taskSize)
-{
-	int srcOffset = blockIdx.x * connectionPerModel;
-	int desOffset = blockIdx.x * modelWeight;
-	for (int i = threadIdx.x; i < connectionPerModel; i += blockDim.x)
-	{
-		src[srcOffset + i] = des[desOffset + i];
-	}
-}
-
-template<typename Func>
-void runFeedForwardKernel(float* input, float* C, float* output, size_t inNeuronPerModel, size_t connectionNumber, size_t outLayerSize, Func activationFunction, unsigned threadNumber, size_t modelNumber)
-{
-	if (inNeuronPerModel < 32)
-	{
-		
-		//feedForwardCudaOTP << <(static_cast<unsigned>(outLayerSize + threadNumber - 1)) / threadNumber, threadNumber >> >
-		//	(input, C, output, inNeuronPerModel, connectionNumber, outLayerSize, activationFunction);
-
-		//feedForwardCudaOTP2 << <(static_cast<unsigned>(outLayerSize + threadNumber - 1)) / threadNumber, threadNumber >> >
-		//	(input, C, output, inNeuronPerModel, connectionNumber, outLayerSize, activationFunction, modelNumber * connectionNumber);
-	}
-	else
-	{
-		unsigned sharedMemory = 32;
-		while (sharedMemory * 2 < inNeuronPerModel && sharedMemory * 2 <= 1024 && sharedMemory * 2 <= threadNumber)
+		if (lastBatchElement > endIndex)
 		{
-			sharedMemory *= 2;
+			lastBatchElement = endIndex;
 		}
-
-		switch (sharedMemory)
+		// Copy batch to shared memory
+		for (int j = i, sIndex = threadIdx.x; j < lastBatchElement; j += blockDim.x, sIndex += blockDim.x)
 		{
-		case 1024:
-			feedForwardGrid<1024> << <static_cast<unsigned>(outLayerSize), sharedMemory, sharedMemory * sizeof(float) >> >
-				(input, C, output, inNeuronPerModel, connectionNumber, outLayerSize, activationFunction);
-			break;
-		case 512:
-			feedForwardGrid<512> << <static_cast<unsigned>(outLayerSize), sharedMemory, sharedMemory * sizeof(float) >> >
-				(input, C, output, inNeuronPerModel, connectionNumber, outLayerSize, activationFunction);
-			break;
-		case 256:
-			feedForwardGrid<256> << <static_cast<unsigned>(outLayerSize), sharedMemory, sharedMemory * sizeof(float) >> >
-				(input, C, output, inNeuronPerModel, connectionNumber, outLayerSize, activationFunction);
-			break;
-		case 128:
-			feedForwardGrid<128> << <static_cast<unsigned>(outLayerSize), sharedMemory, sharedMemory * sizeof(float) >> >
-				(input, C, output, inNeuronPerModel, connectionNumber, outLayerSize, activationFunction);
-			break;
-		case 64:
-			feedForwardGrid<64> << <static_cast<unsigned>(outLayerSize), sharedMemory, sharedMemory * sizeof(float) >> >
-				(input, C, output, inNeuronPerModel, connectionNumber, outLayerSize, activationFunction);
-			break;
-		case 32:
-			feedForwardGrid<32> << <static_cast<unsigned>(outLayerSize), sharedMemory, sharedMemory * sizeof(float) >> >
-				(input, C, output, inNeuronPerModel, connectionNumber, outLayerSize, activationFunction);
-			break;
+			sdata[sIndex] = src[j];
 		}
+		__syncthreads();
+		int modelID = (blockIdx.x * blockDim.x) / connectionNumber;
+		int neuronID = (blockIdx.x * blockDim.x) % connectionNumber;
+		int destOffset = modelID * weightPerModel + neuronID * inNeuronPerModel;
+		int batchNeuron = loopCounter * batchSize;
+		int modelNeuronCounter{};
+		if (batchNeuron > inNeuronPerModel)
+		{
+			batchNeuron = inNeuronPerModel - (loopCounter - 1) * batchSize;
+		}
+		else
+		{
+			batchNeuron = batchSize;
+		}
+		for (int j = 0; j < outNeuronNumber; ++j)
+		{
+			int tempModelID = (blockIdx.x * blockDim.x + j) / connectionNumber;
+			if (modelID != tempModelID)
+			{
+				modelID = tempModelID;
+				destOffset = modelID * weightPerModel;
+				modelNeuronCounter = 0;
+			}
+			int tempOffset = weightOffset;
+			for (int k = threadIdx.x; k < batchNeuron; k += blockDim.x)
+			{
+				des[destOffset + modelNeuronCounter * inNeuronPerModel + tempOffset] = sdata[j + k * outNeuronNumber];
+				tempOffset += blockDim.x;
+			}
+			modelNeuronCounter++;
+		}
+		__syncthreads();
+		weightOffset += batchSize;
+		loopCounter++;
 	}
 }
 
+__global__ void mapModelWeightFromSharedBatch(float* src, const float* des, int inNeuronPerModel, int connectionNumber, int weightPerKernel, int weightNumber, int stride, int weightPerModel, int batchSize)
+{
+	extern __shared__ float sdata[];
+	// Index of weight that belong to this block
+	int startIndex = blockIdx.x * weightPerKernel + threadIdx.x;
+	int endIndex = blockIdx.x == (gridDim.x - 1) ? weightNumber : (blockIdx.x + 1) * weightPerKernel;
+	// Number of data batches to process
+	int elementPerBatch = blockIdx.x != (gridDim.x - 1) ? batchSize * blockDim.x : batchSize * stride;
+	// Number of neurons that will be processed by this block
+	int outNeuronNumber = blockIdx.x != (gridDim.x - 1) ? blockDim.x : stride;
+	// Number of neurons that were already added
+	int weightOffset = threadIdx.x;
+	int loopCounter{ 1 };
+	// For each batch
+	for (int i = startIndex, lastBatchElement = startIndex + elementPerBatch; i < endIndex; i += elementPerBatch, lastBatchElement += elementPerBatch)
+	{
+		if (lastBatchElement > endIndex)
+		{
+			lastBatchElement = endIndex;
+		}
+		int modelID = (blockIdx.x * blockDim.x) / connectionNumber;
+		int neuronID = (blockIdx.x * blockDim.x) % connectionNumber;
+		int destOffset = modelID * weightPerModel + neuronID * inNeuronPerModel;
+		int batchNeuron = loopCounter * batchSize;
+		int modelNeuronCounter{};
+		if (batchNeuron > inNeuronPerModel)
+		{
+			batchNeuron = inNeuronPerModel - (loopCounter - 1) * batchSize;
+		}
+		else
+		{
+			batchNeuron = batchSize;
+		}
+		__syncthreads();
+		for (int j = 0; j < outNeuronNumber; ++j)
+		{
+			int tempModelID = (blockIdx.x * blockDim.x + j) / connectionNumber;
+			if (modelID != tempModelID)
+			{
+				modelID = tempModelID;
+				destOffset = modelID * weightPerModel;
+				modelNeuronCounter = 0;
+			}
+			int tempOffset = weightOffset;
+			for (int k = threadIdx.x; k < batchNeuron; k += blockDim.x)
+			{
+				sdata[j + k * outNeuronNumber] = des[destOffset + modelNeuronCounter * inNeuronPerModel + tempOffset];
+				tempOffset += blockDim.x;
+			}
+			modelNeuronCounter++;
+		}
+		__syncthreads();
+		// Copy batch to shared memory
+		for (int j = i, sIndex = threadIdx.x; j < lastBatchElement; j += blockDim.x, sIndex += blockDim.x)
+		{
+			src[j] = sdata[sIndex];
+		}
+		weightOffset += batchSize;
+		loopCounter++;
+	}
+}
 
 CudaLayer::CudaLayer(size_t neuronNumber, size_t connectionNumber, size_t modelNumber, ActivationFunction actFunc)
 	:m_neuronPerModel{ neuronNumber }, m_connectionPerNeuron{ connectionNumber }, m_modelNumber{ modelNumber }, m_actFunc{ actFunc }
@@ -196,39 +190,23 @@ void CudaLayer::getNeurons(float* output, bool isHostAllocated)
 	}
 }
 
-void CudaLayer::setWeight(const float* input, bool isHostAllocated)
-{
-	if (isHostAllocated)
-	{
-		cudaMemcpy(thrust::raw_pointer_cast(md_weights.data()), input, sizeof(float) * md_weights.size(), cudaMemcpyHostToDevice);
-	}
-	else
-	{
-		cudaMemcpy(thrust::raw_pointer_cast(md_weights.data()), input, sizeof(float) * md_weights.size(), cudaMemcpyDeviceToDevice);
-	}
-}
-
-void CudaLayer::getWeight(float* output, bool isHostAllocated)
-{
-	if (isHostAllocated)
-	{
-		cudaMemcpy(output, thrust::raw_pointer_cast(md_weights.data()), sizeof(float) * md_weights.size(), cudaMemcpyDeviceToHost);
-	}
-	else
-	{
-		cudaMemcpy(output, thrust::raw_pointer_cast(md_weights.data()), sizeof(float) * md_weights.size(), cudaMemcpyDeviceToDevice);
-	}
-}
-
 void CudaLayer::setConnections(size_t connectionNumber)
 {
+	// Create weights
 	m_connectionPerNeuron = connectionNumber;
 	md_weights.resize((m_neuronPerModel + 1) * m_connectionPerNeuron * m_modelNumber);
+	// Get number of blocks for kernels
+	m_blockNumber = static_cast<int>((m_modelNumber * m_connectionPerNeuron + m_threadNumber - 1)) / m_threadNumber;
+	// Get number of neurons to process for last kernel
+	m_stride = m_modelNumber * m_connectionPerNeuron % m_threadNumber;
+	if (m_stride == 0)
+	{
+		m_stride = m_threadNumber;
+	}
 }
 
-void CudaLayer::feedForward(CudaLayer* next, unsigned threadNumber)
+void CudaLayer::feedForward(CudaLayer* next)
 {
-	size_t outLayerSize = next->getLayerSize();
 	switch (next->m_actFunc)
 	{
 		case ActivationFunction::RELU:
@@ -236,7 +214,8 @@ void CudaLayer::feedForward(CudaLayer* next, unsigned threadNumber)
 			auto actFunc = [=] __device__(float x) {
 				return x <= 0 ? 0 : x;
 			};
-			runFeedForwardKernel(thrust::raw_pointer_cast(md_neurons.data()), thrust::raw_pointer_cast(md_weights.data()), thrust::raw_pointer_cast(next->md_neurons.data()), m_neuronPerModel, m_connectionPerNeuron, outLayerSize, actFunc, threadNumber,m_modelNumber);
+			feedForwardOptimized << <m_blockNumber, m_threadNumber >> > (thrust::raw_pointer_cast(md_neurons.data()), thrust::raw_pointer_cast(md_weights.data()), thrust::raw_pointer_cast(next->md_neurons.data()),
+				m_neuronPerModel, m_connectionPerNeuron, m_weightPerBlock, md_weights.size(),m_stride, actFunc);
 			break;
 		}
 		case ActivationFunction::TANH:
@@ -244,7 +223,8 @@ void CudaLayer::feedForward(CudaLayer* next, unsigned threadNumber)
 			auto actFunc = [=] __device__(float x) {
 				return tanh(x);
 			};
-			runFeedForwardKernel(thrust::raw_pointer_cast(md_neurons.data()), thrust::raw_pointer_cast(md_weights.data()), thrust::raw_pointer_cast(next->md_neurons.data()), m_neuronPerModel, m_connectionPerNeuron, outLayerSize, actFunc, threadNumber, m_modelNumber);
+			feedForwardOptimized << <m_blockNumber, m_threadNumber >> > (thrust::raw_pointer_cast(md_neurons.data()), thrust::raw_pointer_cast(md_weights.data()), thrust::raw_pointer_cast(next->md_neurons.data()),
+				m_neuronPerModel, m_connectionPerNeuron, m_weightPerBlock, md_weights.size(),m_stride, actFunc);
 			break;
 		}
 		case ActivationFunction::SIGMOID:
@@ -252,7 +232,8 @@ void CudaLayer::feedForward(CudaLayer* next, unsigned threadNumber)
 			auto actFunc = [=] __device__(float x) {
 				return 1.0f / (1.0f + exp(-x));
 			};
-			runFeedForwardKernel(thrust::raw_pointer_cast(md_neurons.data()), thrust::raw_pointer_cast(md_weights.data()), thrust::raw_pointer_cast(next->md_neurons.data()), m_neuronPerModel, m_connectionPerNeuron, outLayerSize, actFunc, threadNumber, m_modelNumber);
+			feedForwardOptimized << <m_blockNumber, m_threadNumber >> > (thrust::raw_pointer_cast(md_neurons.data()), thrust::raw_pointer_cast(md_weights.data()), thrust::raw_pointer_cast(next->md_neurons.data()),
+				m_neuronPerModel, m_connectionPerNeuron, m_weightPerBlock, md_weights.size(),m_stride, actFunc);
 			break;
 		}
 	}
@@ -263,26 +244,23 @@ size_t CudaLayer::getLayerSize() const
 	return md_neurons.size();
 }
 
-void CudaLayer::getModelWeight(float* output, size_t modelOffset, unsigned threadNumber)
+void CudaLayer::getModelWeight(float* output, size_t modelOffset)
 {
-	int connectionPerModel = (m_neuronPerModel + 1) * m_connectionPerNeuron;
-	mapModelWeightTo << <m_modelNumber, threadNumber >> > (thrust::raw_pointer_cast(md_weights.data()), output, connectionPerModel, modelOffset, m_modelNumber);
+	mapModelWeightToSharedBatch << < m_blockNumber, m_threadNumber, sizeof(float)* m_threadNumber* m_batchSize >> > (thrust::raw_pointer_cast(md_weights.data()), output,
+		m_neuronPerModel + 1, m_connectionPerNeuron, m_weightPerBlock, md_weights.size(), m_stride, modelOffset, m_batchSize);
 }
 
-void CudaLayer::setModelWeight(const float* input, size_t modelOffset,unsigned threadNumber)
+void CudaLayer::setModelWeight(const float* input, size_t modelOffset)
 {
-	int connectionPerModel = (m_neuronPerModel + 1) * m_connectionPerNeuron;
-	mapModelWeightFrom << <m_modelNumber, threadNumber >> > (thrust::raw_pointer_cast(md_weights.data()), input, connectionPerModel, modelOffset, m_modelNumber);
+	mapModelWeightFromSharedBatch << < m_blockNumber, m_threadNumber, sizeof(float)* m_threadNumber* m_batchSize >> > (thrust::raw_pointer_cast(md_weights.data()), input,
+		m_neuronPerModel + 1, m_connectionPerNeuron, m_weightPerBlock, md_weights.size(), m_stride, modelOffset, m_batchSize);
 }
 
 void CudaLayer::initLayer()
 {
 	// Set up neurons
-	size_t networkSize = m_neuronPerModel * m_modelNumber;
-	md_neurons.resize(networkSize);
+	md_neurons.resize(m_neuronPerModel * m_modelNumber);
 	// Set up weights
-	if (m_connectionPerNeuron > 0)
-	{
-		md_weights.resize((m_neuronPerModel + 1) * m_connectionPerNeuron * m_modelNumber);
-	}
+	setConnections(m_connectionPerNeuron);
+	m_weightPerBlock = static_cast<int>(m_threadNumber * (m_neuronPerModel + 1));
 }
