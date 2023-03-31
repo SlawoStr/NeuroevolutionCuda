@@ -1,10 +1,10 @@
 #pragma once
 #include "GeneticMutator.h"
 
-class SignMuatation : public GeneticMutator
+class SignMutation : public GeneticMutator
 {
 public:
-	SignMuatation(float mutationProbability, float geneMutationProbability) : GeneticMutator(mutationProbability, geneMutationProbability)
+	SignMutation(float mutationProbability, float geneMutationProbability) : GeneticMutator(mutationProbability, geneMutationProbability)
 	{}
 	void runMutation(std::vector<float>& weight, std::mt19937& randEngine)
 	{

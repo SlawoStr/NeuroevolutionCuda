@@ -10,35 +10,43 @@
 #include "CPU/CrossoverAlgo/MPCCrossover.h"
 #include "CPU/CrossoverAlgo/UniformCrossover.h"
 #include "CPU/MutationAlgo/AddMutation.h"
+#include "CPU/MutationAlgo/ProcMutation.h"
 #include "CPU/MutationAlgo/NewMutation.h"
+#include "CPU/MutationAlgo/SignMutation.h"
 #include <src/Utility/Timer.h>
 
 
-/*
+
 int main()
 {
-    size_t modelNumber{ 20000 };
-    size_t parentPairNumber{ 9900 };
+    size_t modelNumber{ 5000 };
+    size_t parentPairNumber{ 2400 };
     for (int i = 1; i <= 20; ++i)
     {
-        NeuralNetwork network(30, 10, ActivationFunction::SIGMOID);
-        network.addLayer(25, ActivationFunction::RELU);
+        // Create neural network
+        NeuralNetwork network(30, 5, ActivationFunction::SIGMOID);
         network.addLayer(15, ActivationFunction::RELU);
+        // Create neuroevolution
         Neuroevolution manager(network, modelNumber, parentPairNumber, i);
-        manager.setSelection<WheelSelection>(modelNumber);
-        manager.setCrossover<MPCCrossover>(0.9f);
-        manager.setMutation<NewMutation>(1.0f, 0.1f);
+        // Set genetic operators
+        manager.setSelection<TruncationSelection>(modelNumber, 0.3f);
+        manager.setCrossover<SPCCrossover>(0.9f);
+        manager.setMutation<AddMutation>(0.8f, 0.05f, -0.25f, 0.25f);
         std::vector<std::pair<int, double>>  fitnessVec;
         for (int i = 0; i < modelNumber; ++i)
         {
             fitnessVec.push_back({ i,i * 2.0f });
         }
+
+        int testNumber{ 10 };
         Timer t;
         t.start();
-        manager.run(fitnessVec);
+        for (int i = 0; i < testNumber; ++i)
+        {
+            manager.run(fitnessVec);
+        }
         t.stop();
-        std::cout << t.measure() * 1000 << std::endl;
+        std::cout << t.measure() * 1000 / testNumber << std::endl;
     }
     return 0;
 }
-*/
