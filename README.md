@@ -1,6 +1,6 @@
 # NeuroevolutionCuda
 
-Implementation of gpu - accelerated classical neuroevolution.
+Neuroevolution is a type of machine learning that involves evolving neural networks using genetic algorithms. In this approach, a population of neural networks is initialized and evaluated on a given task. The fittest networks are then selected for reproduction, and genetic operators such as crossover and mutation are applied to create new networks. This process is repeated over multiple generations until the population converges to an optimal solution. 
 
 # Implemented algorithms
 
