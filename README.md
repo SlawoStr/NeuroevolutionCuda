@@ -59,8 +59,6 @@ Performance is a critical factor in neuroevolution, especially as the size of th
 |Crossover|SPC|MPC|Uniform|MPC|
 |Mutation|ADD|NEW|SIGN|PROC|
 
-Results: 
-
 ||Config 1|Config 2|Config 3|Config 4|  
 |---|---|---|---|---|
 |*CPU Multithread*|4.49ms|3.92ms|14.40ms|11.06ms|
