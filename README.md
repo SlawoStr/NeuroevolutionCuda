@@ -1,6 +1,8 @@
 # NeuroevolutionCuda
 
-Neuroevolution is a type of machine learning that involves evolving neural networks using genetic algorithms. In this approach, a population of neural networks is initialized and evaluated on a given task. The fittest networks are then selected for reproduction, and genetic operators such as crossover and mutation are applied to create new networks. This process is repeated over multiple generations until the population converges to an optimal solution. 
+Neuroevolution is a type of artificial intelligence that combines neural networks and evolutionary algorithms to train models for specific tasks. In neuroevolution, a population of neural networks is evolved through a process of selection, reproduction, and mutation, similar to the natural evolution of species. The fittest neural networks are selected to reproduce, and their genetic material is combined through crossover to produce new individuals. These individuals are then mutated to introduce new variations into the population, which can result in the emergence of novel and useful solutions.
+
+By leveraging the power of parallel computing on GPUs, neuroevolution can be accelerated significantly, allowing for the evolution of larger and more complex neural networks than is possible with traditional CPU-based algorithms. This makes neuroevolution a promising approach for a variety of machine learning applications, including robotics, game AI, and computer vision.
 
 # Implemented algorithms
 
