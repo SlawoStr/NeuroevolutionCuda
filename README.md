@@ -48,7 +48,7 @@ manager.run(fitnessVec);
 
 # Performance v1.0
 
-Performance is a critical factor in neuroevolution, especially as the size of the population and the complexity of the neural network increase. The use of GPU acceleration can provide significant speedups over traditional CPU implementations. In our implementation, we have achieved the following results:
+Performance is a critical factor in neuroevolution, especially as the size of the population and the complexity of the neural network increase. The use of GPU acceleration can provide significant speedups over traditional CPU implementations. Followed results have been achieved.
 
 ||Config 1|Config 2|Config 3|Config 4|  
 |---|---|---|---|---|
