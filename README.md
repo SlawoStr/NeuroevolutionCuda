@@ -9,7 +9,7 @@ By leveraging the power of parallel computing on GPUs, neuroevolution can be acc
 Selection Algorithms:
 
 - Truncation Selection ( Insufficient computation to fully utilize gpu power ) 
-- Wheel Selection (Warp divergence problem ( CPU execution is much better ))
+- Wheel Selection (Warp divergence problem ( CPU execution is much better for now ) add binary search)
 - Tournament Selection
 
 Crossover Algorithms:
